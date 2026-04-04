@@ -1,13 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -70,23 +70,20 @@ func selfUpdate() error {
 
 func latestVersion() (string, error) {
 	resp, err := httpClient.Get(
-		fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo),
+		fmt.Sprintf("https://github.com/%s/releases/latest", repo),
 	)
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	resp.Body.Close()
 
-	var release struct {
-		TagName string `json:"tag_name"`
+	// GitHub redirects to the actual release URL, e.g.
+	// https://github.com/.../releases/tag/v1.2.3
+	u := resp.Request.URL.String()
+	if i := strings.LastIndex(u, "/tag/"); i >= 0 {
+		return u[i+5:], nil
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
-		return "", err
-	}
-	if release.TagName == "" {
-		return "", fmt.Errorf("empty tag_name in API response")
-	}
-	return release.TagName, nil
+	return "", fmt.Errorf("could not parse release URL: %s", u)
 }
 
 func downloadTemp(url, dir string) (string, error) {

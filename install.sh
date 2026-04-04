@@ -16,8 +16,8 @@ case "$(uname -m)" in
   *)       die "unsupported architecture: $(uname -m)" ;;
 esac
 
-VERSION="${1:-$(curl -sf "https://api.github.com/repos/${REPO}/releases/latest" \
-  | grep -o '"tag_name":"[^"]*"' | cut -d'"' -f4)}"
+VERSION="${1:-$(curl -sfLo /dev/null -w '%{url_effective}' \
+  "https://github.com/${REPO}/releases/latest" | sed 's|.*/tag/||')}"
 [ -n "$VERSION" ] || die "could not determine latest version."
 
 echo "Installing ${BINARY} ${VERSION} (linux/${ARCH})..."
