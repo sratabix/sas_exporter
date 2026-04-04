@@ -15,7 +15,7 @@ import (
 //
 //	ROC temperature(Degree Celsius) = 64
 //	Ctrl temperature(Degree Celcius) = 64   ← Broadcom typo in older firmware
-var storCLITempRe = regexp.MustCompile(`(?i)^(\w+)\s+temperature\(Degree\s+Cel[sc]ius\)\s*=\s*(\d+)`)
+var storCLITempRe = regexp.MustCompile(`(?i)^(\w+)\s+temperature\(Degree\s+Cel[sc]ius\)[^0-9]*(\d+)`)
 var storCLIControllerRe = regexp.MustCompile(`(?i)^Controller\s*=\s*(\d+)`)
 
 // StorCLICollector collects controller temperatures via the storcli utility.
