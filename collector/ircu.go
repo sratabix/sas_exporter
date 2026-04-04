@@ -44,7 +44,7 @@ var (
 	)
 	toolUpDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "exporter", "tool_up"),
-		"1 if the ircu tool ran successfully, 0 otherwise.",
+		"1 if the named tool ran successfully, 0 otherwise.",
 		[]string{"tool"},
 		nil,
 	)

@@ -29,10 +29,10 @@ func NewStorCLICollector(path string) *StorCLICollector {
 	return &StorCLICollector{path: path}
 }
 
-func (c *StorCLICollector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- controllerTempDesc
-	ch <- toolUpDesc
-}
+// Describe intentionally emits nothing, making this an unchecked collector.
+// controllerTempDesc is owned by HwmonCollector and toolUpDesc by IrcuCollector;
+// both descriptors are shared and can only be described by one collector each.
+func (c *StorCLICollector) Describe(_ chan<- *prometheus.Desc) {}
 
 func (c *StorCLICollector) Collect(ch chan<- prometheus.Metric) {
 	out, err := runTool(c.path, "/cALL", "show", "temperature")
