@@ -13,8 +13,8 @@ import (
 
 var controllerTempDesc = prometheus.NewDesc(
 	prometheus.BuildFQName(namespace, "controller", "temperature_celsius"),
-	"SAS controller temperature in Celsius, read from the mpt3sas/mpt2sas hwmon sysfs interface.",
-	[]string{"pci_address", "sensor", "label"},
+	"SAS controller temperature in Celsius.",
+	[]string{"controller", "sensor", "label"},
 	nil,
 )
 
@@ -48,7 +48,7 @@ func (c *HwmonCollector) Collect(ch chan<- prometheus.Metric) {
 			continue
 		}
 
-		pciAddr := hwmonPCIAddress(hwmonPath)
+		controller := hwmonPCIAddress(hwmonPath)
 		temps, err := readTempInputs(hwmonPath)
 		if err != nil {
 			log.Printf("sas_exporter: hwmon %s: %v", entry.Name(), err)
@@ -58,7 +58,7 @@ func (c *HwmonCollector) Collect(ch chan<- prometheus.Metric) {
 		for _, t := range temps {
 			ch <- prometheus.MustNewConstMetric(
 				controllerTempDesc, prometheus.GaugeValue, t.celsius,
-				pciAddr, t.sensor, t.label,
+				controller, t.sensor, t.label,
 			)
 		}
 	}

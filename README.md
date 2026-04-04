@@ -1,12 +1,14 @@
 # sas_exporter
 
-Prometheus exporter for LSI SAS HBA controllers. Exposes controller info and drive temperatures via `sas2ircu` / `sas3ircu`.
+Prometheus exporter for LSI/Broadcom SAS controllers. Exposes controller info and drive temperatures via `sas2ircu` / `sas3ircu` (HBA/IT-mode) and `storcli` (MegaRAID).
 
 ## Requirements
 
 - Linux
-- `sas3ircu` and/or `sas2ircu` in `$PATH` (or specify paths via flags)
-- Root privileges (ircu tools require direct PCI access)
+- One or more of the following in `$PATH` (or specify paths via flags):
+  - `sas3ircu` / `sas2ircu` — for HBA/IT-mode controllers (LSI SAS 2008, 3008, etc.)
+  - `storcli` — for MegaRAID RAID controllers
+- Root privileges (tools require direct PCI access)
 
 ## Install
 
@@ -31,6 +33,7 @@ sudo sas_exporter remove   # stop service and uninstall
 | `--web.telemetry-path` | `/metrics` | Path to expose metrics on |
 | `--sas3ircu` | `sas3ircu` | Path to sas3ircu binary |
 | `--sas2ircu` | `sas2ircu` | Path to sas2ircu binary |
+| `--storcli` | `storcli` | Path to storcli binary |
 | `--hwmon.path` | `/sys/class/hwmon` | Path to hwmon sysfs root |
 
 Override flags by editing `/etc/systemd/system/sas_exporter.service`.
@@ -42,8 +45,8 @@ Override flags by editing `/etc/systemd/system/sas_exporter.service`.
 | `sas_controller_info` | Controller metadata (type, firmware, BIOS, PCI address) |
 | `sas_physical_device_info` | Per-drive metadata (state, protocol, drive type, model, serial) |
 | `sas_physical_device_temperature_celsius` | Drive temperature |
-| `sas_controller_temperature_celsius` | Controller temperature via hwmon (kernel ≥ 5.x, if supported) |
-| `sas_exporter_tool_up` | 1 if the ircu tool ran successfully, 0 otherwise |
+| `sas_controller_temperature_celsius` | Controller temperature (labels: `controller`, `sensor`, `label`). Sources: storcli (`sensor="roc"`, `sensor="ctrl"`) or hwmon sysfs |
+| `sas_exporter_tool_up` | 1 if the named tool ran successfully, 0 otherwise (labels: `tool`) |
 
 ## Build from source
 

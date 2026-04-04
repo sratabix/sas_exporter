@@ -35,6 +35,7 @@ func main() {
 		metricsPath  = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
 		sas3ircuPath = flag.String("sas3ircu", "sas3ircu", "Path to the sas3ircu binary.")
 		sas2ircuPath = flag.String("sas2ircu", "sas2ircu", "Path to the sas2ircu binary.")
+		storCLIPath  = flag.String("storcli", "storcli", "Path to the storcli binary.")
 		hwmonRoot    = flag.String("hwmon.path", "/sys/class/hwmon", "Path to the hwmon sysfs root.")
 	)
 	flag.Parse()
@@ -44,6 +45,7 @@ func main() {
 		prometheus.NewGoCollector(),
 		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
 		collector.NewIrcuCollector(*sas3ircuPath, *sas2ircuPath),
+		collector.NewStorCLICollector(*storCLIPath),
 		collector.NewHwmonCollector(*hwmonRoot),
 	)
 
