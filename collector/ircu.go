@@ -8,8 +8,10 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -102,7 +104,9 @@ func (c *IrcuCollector) Collect(ch chan<- prometheus.Metric) {
 	for _, tool := range c.tools {
 		controllers, devices, err := scrape(tool.path)
 		if err != nil {
-			log.Printf("sas_exporter: %s: %v", tool.name, err)
+			if !binaryNotFound(err) {
+				log.Printf("sas_exporter: %s: %v", tool.name, err)
+			}
 			ch <- prometheus.MustNewConstMetric(toolUpDesc, prometheus.GaugeValue, 0, tool.name)
 			continue
 		}
@@ -163,6 +167,12 @@ func runTool(toolPath string, args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	return exec.CommandContext(ctx, toolPath, args...).Output()
+}
+
+// binaryNotFound returns true when err indicates the binary does not exist,
+// either because it was not found on PATH or because the given path is absent.
+func binaryNotFound(err error) bool {
+	return errors.Is(err, exec.ErrNotFound) || errors.Is(err, os.ErrNotExist)
 }
 
 // parseIndices extracts controller index numbers from `LIST` output.

@@ -37,7 +37,9 @@ func (c *StorCLICollector) Describe(ch chan<- *prometheus.Desc) {
 func (c *StorCLICollector) Collect(ch chan<- prometheus.Metric) {
 	out, err := runTool(c.path, "/cALL", "show", "temperature")
 	if err != nil {
-		log.Printf("sas_exporter: storcli: %v", err)
+		if !binaryNotFound(err) {
+			log.Printf("sas_exporter: storcli: %v", err)
+		}
 		ch <- prometheus.MustNewConstMetric(toolUpDesc, prometheus.GaugeValue, 0, "storcli")
 		return
 	}
