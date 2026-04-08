@@ -166,7 +166,9 @@ func scrape(toolPath string) ([]controllerInfo, []physicalDevice, error) {
 func runTool(toolPath string, args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	return exec.CommandContext(ctx, toolPath, args...).Output()
+	cmd := exec.CommandContext(ctx, toolPath, args...)
+	cmd.Dir = "/tmp"
+	return cmd.Output()
 }
 
 // binaryNotFound returns true when err indicates the binary does not exist,
