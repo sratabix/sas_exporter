@@ -16,6 +16,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -163,12 +164,74 @@ func scrape(toolPath string) ([]controllerInfo, []physicalDevice, error) {
 	return controllers, devices, nil
 }
 
+// toolCacheTTL controls how long a successful tool invocation's output is
+// reused. SAS topology and controller temperatures change slowly relative
+// to typical Prometheus scrape intervals, so caching here protects the
+// machine from invocation pile-ups when scrapes arrive faster than the
+// vendor tools can run.
+const toolCacheTTL = 30 * time.Second
+
+type toolResult struct {
+	out []byte
+	err error
+	at  time.Time
+}
+
+var (
+	toolCacheMu sync.Mutex
+	toolCache   = map[string]*toolResult{}
+	toolLocks   = map[string]*sync.Mutex{}
+)
+
+func toolKey(toolPath string, args []string) string {
+	return toolPath + "\x00" + strings.Join(args, "\x00")
+}
+
+func toolLockFor(key string) *sync.Mutex {
+	toolCacheMu.Lock()
+	defer toolCacheMu.Unlock()
+	m, ok := toolLocks[key]
+	if !ok {
+		m = &sync.Mutex{}
+		toolLocks[key] = m
+	}
+	return m
+}
+
 func runTool(toolPath string, args ...string) ([]byte, error) {
+	key := toolKey(toolPath, args)
+
+	toolCacheMu.Lock()
+	if r, ok := toolCache[key]; ok && time.Since(r.at) < toolCacheTTL {
+		toolCacheMu.Unlock()
+		return r.out, r.err
+	}
+	toolCacheMu.Unlock()
+
+	// Serialize concurrent invocations of the same command so overlapping
+	// scrapes share one execution rather than stacking subprocesses.
+	lock := toolLockFor(key)
+	lock.Lock()
+	defer lock.Unlock()
+
+	toolCacheMu.Lock()
+	if r, ok := toolCache[key]; ok && time.Since(r.at) < toolCacheTTL {
+		toolCacheMu.Unlock()
+		return r.out, r.err
+	}
+	toolCacheMu.Unlock()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, toolPath, args...)
 	cmd.Dir = "/tmp"
-	return cmd.Output()
+	out, err := cmd.Output()
+
+	toolCacheMu.Lock()
+	toolCache[key] = &toolResult{out: out, err: err, at: time.Now()}
+	toolCacheMu.Unlock()
+
+	return out, err
 }
 
 // binaryNotFound returns true when err indicates the binary does not exist,
