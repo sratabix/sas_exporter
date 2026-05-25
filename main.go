@@ -17,11 +17,6 @@ var version = "0.1.0"
 func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
-		case "update":
-			if err := selfUpdate(); err != nil {
-				log.Fatal(err)
-			}
-			return
 		case "remove":
 			if err := selfRemove(); err != nil {
 				log.Fatal(err)

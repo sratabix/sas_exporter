@@ -30,7 +30,3 @@ func selfRemove() error {
 	fmt.Println("sas_exporter removed.")
 	return nil
 }
-
-func restartService() {
-	_ = exec.Command("systemctl", "restart", "sas_exporter").Run()
-}
