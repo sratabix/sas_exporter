@@ -1,7 +1,3 @@
-// Package collector implements Prometheus metrics collection for LSI SAS
-// controllers via the sas2ircu and sas3ircu utilities. The exporter must
-// run as root (or with CAP_SYS_ADMIN) since these tools require direct
-// PCI device access.
 package collector
 
 import (
@@ -73,7 +69,6 @@ type physicalDevice struct {
 	hasTemp       bool
 }
 
-// IrcuCollector collects metrics from sas2ircu and sas3ircu.
 type IrcuCollector struct {
 	tools []ircuTool
 }
@@ -83,8 +78,6 @@ type ircuTool struct {
 	path string
 }
 
-// NewIrcuCollector creates a new IrcuCollector that queries both sas3ircu
-// (for 12Gb/s controllers like the LSI SAS 3008) and sas2ircu (for 6Gb/s).
 func NewIrcuCollector(sas3ircuPath, sas2ircuPath string) *IrcuCollector {
 	return &IrcuCollector{
 		tools: []ircuTool{
@@ -138,8 +131,6 @@ func (c *IrcuCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-// scrape runs `<tool> LIST` to discover controller indices, then
-// `<tool> <N> DISPLAY` for each one and parses the results.
 func scrape(toolPath string) ([]controllerInfo, []physicalDevice, error) {
 	out, err := runTool(toolPath, "LIST")
 	if err != nil {
@@ -164,11 +155,6 @@ func scrape(toolPath string) ([]controllerInfo, []physicalDevice, error) {
 	return controllers, devices, nil
 }
 
-// toolCacheTTL controls how long a successful tool invocation's output is
-// reused. SAS topology and controller temperatures change slowly relative
-// to typical Prometheus scrape intervals, so caching here protects the
-// machine from invocation pile-ups when scrapes arrive faster than the
-// vendor tools can run.
 const toolCacheTTL = 30 * time.Second
 
 type toolResult struct {
@@ -208,8 +194,6 @@ func runTool(toolPath string, args ...string) ([]byte, error) {
 	}
 	toolCacheMu.Unlock()
 
-	// Serialize concurrent invocations of the same command so overlapping
-	// scrapes share one execution rather than stacking subprocesses.
 	lock := toolLockFor(key)
 	lock.Lock()
 	defer lock.Unlock()
@@ -234,18 +218,10 @@ func runTool(toolPath string, args ...string) ([]byte, error) {
 	return out, err
 }
 
-// binaryNotFound returns true when err indicates the binary does not exist,
-// either because it was not found on PATH or because the given path is absent.
 func binaryNotFound(err error) bool {
 	return errors.Is(err, exec.ErrNotFound) || errors.Is(err, os.ErrNotExist)
 }
 
-// parseIndices extracts controller index numbers from `LIST` output.
-// The table looks like:
-//
-//	Index    Type    ...
-//	-----  ------   ...
-//	    0  SAS3008  ...
 var listIndexRe = regexp.MustCompile(`^\s+(\d+)\s+\S`)
 
 func parseIndices(output []byte) []string {
@@ -267,7 +243,6 @@ func parseIndices(output []byte) []string {
 	return indices
 }
 
-// parseDisplay parses the output of `sas[23]ircu <N> DISPLAY`.
 func parseDisplay(idx string, output []byte) (controllerInfo, []physicalDevice) {
 	ctrl := controllerInfo{index: idx}
 	var devices []physicalDevice
@@ -293,13 +268,11 @@ func parseDisplay(idx string, output []byte) (controllerInfo, []physicalDevice) 
 type parseState int
 
 const (
-	stateContent     parseState = iota
-	stateExpectTitle            // saw opening dashes, waiting for section title
-	stateExpectDash             // saw title, waiting for closing dashes
+	stateContent parseState = iota
+	stateExpectTitle
+	stateExpectDash
 )
 
-// splitSections splits sas[23]ircu DISPLAY output into named sections.
-// The format repeats: <dashes> <title> <dashes> <content lines>
 func splitSections(output []byte) map[string][]string {
 	sections := make(map[string][]string)
 	var currentSection string
@@ -355,12 +328,8 @@ func parseKV(lines []string) map[string]string {
 	return kv
 }
 
-// tempRe matches e.g. " 35C (95.00 F)"
 var tempRe = regexp.MustCompile(`(\d+)C\s+\(`)
 
-// parsePhysicalDevices parses device entries within the
-// "Physical device information" section. Each device starts with
-// a "Device is a <type>" line followed by key-value pairs.
 func parsePhysicalDevices(ctrlIdx string, lines []string) []physicalDevice {
 	var devices []physicalDevice
 	var cur *physicalDevice
@@ -393,7 +362,7 @@ func parsePhysicalDevices(ctrlIdx string, lines []string) []physicalDevice {
 		case "Slot #":
 			cur.slot = val
 		case "State":
-			// "Ready (RDY)" → "RDY"
+
 			if i := strings.Index(val, "("); i >= 0 {
 				cur.state = strings.Trim(val[i:], "()")
 			} else {

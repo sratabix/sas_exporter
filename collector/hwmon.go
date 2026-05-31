@@ -18,10 +18,6 @@ var controllerTempDesc = prometheus.NewDesc(
 	nil,
 )
 
-// HwmonCollector reads controller temperatures from the mpt3sas/mpt2sas hwmon
-// sysfs interface. It emits no metrics (silently) if no matching hwmon devices
-// are found, which is expected on kernels that predate hwmon support in those
-// drivers or where the feature is not compiled in.
 type HwmonCollector struct {
 	root string
 }
@@ -37,7 +33,7 @@ func (c *HwmonCollector) Describe(ch chan<- *prometheus.Desc) {
 func (c *HwmonCollector) Collect(ch chan<- prometheus.Metric) {
 	entries, err := os.ReadDir(c.root)
 	if err != nil {
-		// Not Linux, or /sys/class/hwmon doesn't exist — skip silently.
+
 		return
 	}
 
@@ -64,9 +60,8 @@ func (c *HwmonCollector) Collect(ch chan<- prometheus.Metric) {
 	}
 }
 
-// isSASDriver returns true if the hwmon device belongs to mpt3sas or mpt2sas.
 func isSASDriver(hwmonPath string) bool {
-	// /sys/class/hwmon/hwmonN/device/driver -> ../../bus/pci/drivers/mpt3sas
+
 	target, err := os.Readlink(filepath.Join(hwmonPath, "device", "driver"))
 	if err != nil {
 		return false
@@ -75,8 +70,6 @@ func isSASDriver(hwmonPath string) bool {
 	return name == "mpt3sas" || name == "mpt2sas"
 }
 
-// hwmonPCIAddress resolves the hwmon device symlink to its PCI device path
-// and returns the final component, e.g. "0000:03:00.0".
 func hwmonPCIAddress(hwmonPath string) string {
 	devicePath, err := filepath.EvalSymlinks(filepath.Join(hwmonPath, "device"))
 	if err != nil {
@@ -86,8 +79,8 @@ func hwmonPCIAddress(hwmonPath string) string {
 }
 
 type tempReading struct {
-	sensor  string  // e.g. "temp1"
-	label   string  // e.g. "IOCTemp", empty if no label file
+	sensor  string
+	label   string
 	celsius float64
 }
 
@@ -103,7 +96,7 @@ func readTempInputs(hwmonPath string) ([]tempReading, error) {
 		if !strings.HasPrefix(name, "temp") || !strings.HasSuffix(name, "_input") {
 			continue
 		}
-		sensor := strings.TrimSuffix(name, "_input") // "temp1"
+		sensor := strings.TrimSuffix(name, "_input")
 
 		raw, err := os.ReadFile(filepath.Join(hwmonPath, name))
 		if err != nil {

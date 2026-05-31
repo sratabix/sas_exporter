@@ -11,7 +11,6 @@ import (
 	"github.com/sratabix/sas_exporter/collector"
 )
 
-// version is overridden at build time via -ldflags "-X main.version=..."
 var version = "0.1.0"
 
 func main() {
