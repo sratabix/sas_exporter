@@ -4,9 +4,9 @@ import (
 	"flag"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sratabix/sas_exporter/collector"
 )
@@ -14,16 +14,6 @@ import (
 var version = "0.1.0"
 
 func main() {
-	if len(os.Args) > 1 {
-		switch os.Args[1] {
-		case "remove":
-			if err := selfRemove(); err != nil {
-				log.Fatal(err)
-			}
-			return
-		}
-	}
-
 	var (
 		listenAddr   = flag.String("web.listen-address", ":9856", "Address on which to expose metrics.")
 		metricsPath  = flag.String("web.telemetry-path", "/metrics", "Path under which to expose metrics.")
@@ -36,8 +26,8 @@ func main() {
 
 	reg := prometheus.NewRegistry()
 	reg.MustRegister(
-		prometheus.NewGoCollector(),
-		prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}),
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 		collector.NewIrcuCollector(*sas3ircuPath, *sas2ircuPath),
 		collector.NewStorCLICollector(*storCLIPath),
 		collector.NewHwmonCollector(*hwmonRoot),

@@ -5,25 +5,30 @@ Prometheus exporter for LSI/Broadcom SAS controllers. Exposes controller info an
 ## Requirements
 
 - Linux
-- One or more of the following in `$PATH` (or specify paths via flags):
-  - `sas3ircu` / `sas2ircu` — for HBA/IT-mode controllers (LSI SAS 2008, 3008, etc.)
-  - `storcli` — for MegaRAID RAID controllers
+- One or more of the vendor tools below in `$PATH` (or specify paths via flags)
 - Root privileges (tools require direct PCI access)
+
+## Vendor tools
+
+These are not bundled — download the one(s) matching your controller and place them in `$PATH`:
+
+| Tool | Use for | Download |
+|---|---|---|
+| `sas3ircu` | HBA/IT-mode, 12Gb/s (LSI SAS 3008, etc.) | [IBM — sas3ircu v17.00.00.00 (Linux)](https://www.ibm.com/support/pages/sas3ircu-command-line-utility-storage-management-v17000000-linux-ibm-system-x) |
+| `sas2ircu` | HBA/IT-mode, 6Gb/s (LSI SAS 2008, etc.) | [IBM — sas2ircu v18.00.00.00 (Linux)](https://www.ibm.com/support/pages/command-line-utility-storage-management-v18000000-linux-ibm-systems) |
+| `storcli` | MegaRAID RAID controllers | [Broadcom — StorCLI](https://docs.broadcom.com/docs/1232743397) |
 
 ## Install
 
+Download the binary for your architecture and run it. For a systemd service, see [docs/systemd.md](docs/systemd.md).
+
 ```sh
-curl -fsSL https://github.com/sratabix/sas_exporter/releases/latest/download/install.sh | sudo sh
+ARCH=$(uname -m); case "$ARCH" in x86_64) ARCH=amd64 ;; aarch64) ARCH=arm64 ;; esac
+curl -fL "https://github.com/sratabix/sas_exporter/releases/latest/download/sas_exporter_linux_${ARCH}" \
+  -o ./sas_exporter && chmod +x ./sas_exporter
 ```
 
 Metrics are exposed on `:9856/metrics`.
-
-## Manage
-
-```sh
-sudo sas_exporter update   # update to latest release
-sudo sas_exporter remove   # stop service and uninstall
-```
 
 ## Flags
 
